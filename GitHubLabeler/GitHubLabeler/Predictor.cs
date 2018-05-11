@@ -17,7 +17,7 @@ namespace GitHubLabeler
         {
             var pipeline = new LearningPipeline();
 
-            pipeline.Add(new TextLoader<CoreFxIssue>(DataPath, header: true));
+            pipeline.Add(new TextLoader<CoreFxIssue>(DataPath, useHeader: true));
 
             pipeline.Add(new Dictionarizer(("Area", "Label")));
 
@@ -25,7 +25,7 @@ namespace GitHubLabeler
 
             pipeline.Add(new TextFeaturizer("Description", "Description"));
             
-            pipeline.Add(new ColumnConcatenator(outputColumn: "Features", "Title", "Description"));
+            pipeline.Add(new ColumnConcatenator("Features", "Title", "Description"));
 
             pipeline.Add(new StochasticDualCoordinateAscentClassifier());
             pipeline.Add(new PredictedLabelColumnOriginalValueConverter() { PredictedLabelColumn = "PredictedLabel" });
