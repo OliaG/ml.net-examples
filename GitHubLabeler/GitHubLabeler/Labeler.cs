@@ -1,61 +1,59 @@
-﻿using Octokit;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Octokit;
+
 namespace GitHubLabeler
 {
-    public class Labeler
+    internal class Labeler
     {
-        private const string GitHubProductIdentifier = "Autolabeler";
-        
         private readonly GitHubClient _client;
-        private readonly string _owner;
-        private readonly string _name;
+        private readonly string _repoOwner;
+        private readonly string _repoName;
 
-        public Labeler(string owner, string name, string accessToken)
+        public Labeler(string repoOwner, string repoName, string accessToken)
         {
-            _owner = owner;
-            _name = name;
-            _client = new GitHubClient(new ProductHeaderValue(GitHubProductIdentifier))
+            _repoOwner = repoOwner;
+            _repoName = repoName;
+            var productInformation = new ProductHeaderValue("ML GitHubLabeler");
+            _client = new GitHubClient(productInformation)
             {
                 Credentials = new Credentials(accessToken)
             };
         }
 
-        //Label all issues that are not labeled yet starting from Issue.Number = minId and later
-        public async Task LabelAllNewIssues(int minId)
+        // Label all issues that are not labeled yet
+        public async Task LabelAllNewIssues()
         {
-            var newIssues = await GetNewIssues(minId);
-            foreach (var issue in newIssues.Where(issue => issue.Labels.Count == 0))
+            var newIssues = await GetNewIssues();
+            foreach (var issue in newIssues.Where(issue => !issue.Labels.Any()))
             {
-                var label = await GetLabel(issue);
-                UpdateLabels(issue, label);
-                NotifyAssignee(issue, label);
+                var label = await PredictLabel(issue);
+                ApplyLabel(issue, label);
             }
         }
 
-        public async Task<IReadOnlyList<Issue>> GetNewIssues(int minId)
+        private async Task<IReadOnlyList<Issue>> GetNewIssues()
         {
             var issueRequest = new RepositoryIssueRequest
             {
                 State = ItemStateFilter.Open,
-                Filter = IssueFilter.All,
+                Filter = IssueFilter.All,                
                 Since = DateTime.Now.AddMinutes(-10)
             };
 
-            var issues = await _client.Issue.GetAllForRepository(_owner, _name, issueRequest);
-            
-            //Filter out pull requests and issues that are older than minId
-            issues = new List<Issue>(issues.Where(i => i.Number >= minId && !i.HtmlUrl.Contains("/pull/")));
-            
-            return issues;
+            var allIssues = await _client.Issue.GetAllForRepository(_repoOwner, _repoName, issueRequest);
+
+            // Filter out pull requests and issues that are older than minId
+            return allIssues.Where(i => !i.HtmlUrl.Contains("/pull/"))
+                            .ToList();
         }
 
-        private async Task<string> GetLabel(Issue issue)
+        private async Task<string> PredictLabel(Issue issue)
         {
-            var corefxIssue = new CoreFxIssue
+            var corefxIssue = new GitHubIssue
             {
                 ID = issue.Number.ToString(),
                 Title = issue.Title,
@@ -67,18 +65,13 @@ namespace GitHubLabeler
             return predictedLabel;
         }
 
-        private void UpdateLabels(Issue issue, string label)
+        private void ApplyLabel(Issue issue, string label)
         {
             var issueUpdate = new IssueUpdate();
             issueUpdate.AddLabel(label);
             
-            _client.Issue.Update(_owner, _name, issue.Number, issueUpdate);
-        }
+            _client.Issue.Update(_repoOwner, _repoName, issue.Number, issueUpdate);
 
-        private void NotifyAssignee(Issue issue, string label)
-        {
-            // To send out email to assigned person add data (emails, credentials) in Notifier.cs and uncomment the next line
-            //Notifier.Send(issue, label);
             Console.WriteLine($"Issue {issue.Number} : \"{issue.Title}\" \t was labeled as: {label}");
         }
     }

@@ -1,23 +1,28 @@
-﻿using Microsoft.ML;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+
+using Microsoft.ML;
 using Microsoft.ML.Trainers;
 using Microsoft.ML.Transforms;
-using System;
-using System.Threading.Tasks;
 
 namespace GitHubLabeler
 {
-    class Predictor
+    internal class Predictor
     {
-        private const string DataPath = @"..\..\..\Data\corefx_issues.tsv";
-        private const string ModelPath = @"..\..\..\Models\Model.zip";
+        private static string AppPath => Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]);
 
-        private static PredictionModel<CoreFxIssue, CoreFxIssuePrediction> _model;
+        private static string DataPath => Path.Combine(AppPath, "Data", "corefx_issues.tsv");
 
-        public static async Task Train()
+        private static string ModelPath => Path.Combine(AppPath, "Models", "Model.zip");
+
+        private static PredictionModel<GitHubIssue, GitHubIssuePrediction> _model;
+
+        public static async Task TrainAsync()
         {
             var pipeline = new LearningPipeline();
 
-            pipeline.Add(new TextLoader<CoreFxIssue>(DataPath, useHeader: true));
+            pipeline.Add(new TextLoader<GitHubIssue>(DataPath, useHeader: true));
 
             pipeline.Add(new Dictionarizer(("Area", "Label")));
 
@@ -31,7 +36,8 @@ namespace GitHubLabeler
             pipeline.Add(new PredictedLabelColumnOriginalValueConverter() { PredictedLabelColumn = "PredictedLabel" });
 
             Console.WriteLine("=============== Training model ===============");
-            var model = pipeline.Train<CoreFxIssue, CoreFxIssuePrediction>();
+
+            var model = pipeline.Train<GitHubIssue, GitHubIssuePrediction>();
 
             await model.WriteAsync(ModelPath);
 
@@ -39,11 +45,11 @@ namespace GitHubLabeler
             Console.WriteLine("The model is saved to {0}", ModelPath);
         }
 
-        public static async Task<string> Predict(CoreFxIssue issue)
+        public static async Task<string> Predict(GitHubIssue issue)
         {
             if (_model == null)
             {
-                _model = await PredictionModel.ReadAsync<CoreFxIssue, CoreFxIssuePrediction>(ModelPath);
+                _model = await PredictionModel.ReadAsync<GitHubIssue, GitHubIssuePrediction>(ModelPath);
             }
 
             var prediction = _model.Predict(issue);
