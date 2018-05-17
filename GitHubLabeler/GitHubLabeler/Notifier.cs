@@ -18,7 +18,7 @@ namespace GitHubLabeler
 
                 using (var smtp = new SmtpClient("smtp.gmail.com", 587))
                 {
-                    smtp.Credentials = new NetworkCredential("", ""); // ToDo: add gmail username and password                    smtp.EnableSsl = true;
+                    smtp.Credentials = new NetworkCredential("", ""); // ToDo: add gmail username and password
                     smtp.Send(mail);
                 }
             }

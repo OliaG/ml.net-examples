@@ -13,7 +13,7 @@ namespace GitHubLabeler
 
         private static PredictionModel<CoreFxIssue, CoreFxIssuePrediction> _model;
 
-        public static void Train()
+        public static async Task Train()
         {
             var pipeline = new LearningPipeline();
 
@@ -33,7 +33,7 @@ namespace GitHubLabeler
             Console.WriteLine("=============== Training model ===============");
             var model = pipeline.Train<CoreFxIssue, CoreFxIssuePrediction>();
 
-            model.WriteAsync(ModelPath);
+            await model.WriteAsync(ModelPath);
 
             Console.WriteLine("=============== End training ===============");
             Console.WriteLine("The model is saved to {0}", ModelPath);

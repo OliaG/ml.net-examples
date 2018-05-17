@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace GitHubLabeler
 {
@@ -6,12 +7,12 @@ namespace GitHubLabeler
     {
         // ToDo: Insert your GitHub token with write permission to
         // repository you want to label issues for.
-        const string GitHubToken = "";
+        private const string GitHubToken = "";
         // ToDo: Insert User name and Repository name
-        const string GitHubUserName = "";
-        const string GitHubRepoName = "";
+        private const string GitHubUserName = "";
+        private const string GitHubRepoName = "";
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Predictor.Train();
 
@@ -19,7 +20,7 @@ namespace GitHubLabeler
             const int minId = 1;
             var labeler = new Labeler(GitHubUserName, GitHubRepoName, GitHubToken);
             
-            labeler.LabelAllNewIssues(minId);
+            await labeler.LabelAllNewIssues(minId);
             
             Console.WriteLine("Labeling completed");
             Console.ReadLine();

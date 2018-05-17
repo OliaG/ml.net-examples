@@ -25,21 +25,18 @@ namespace GitHubLabeler
         }
 
         //Label all issues that are not labeled yet starting from Issue.Number = minId and later
-        public void LabelAllNewIssues(int minId)
+        public async Task LabelAllNewIssues(int minId)
         {
-            var newIssues = GetNewIssues(minId);
-            foreach (var issue in newIssues)
+            var newIssues = await GetNewIssues(minId);
+            foreach (var issue in newIssues.Where(issue => issue.Labels.Count == 0))
             {
-                if (issue.Labels.Count == 0)
-                {
-                    var label = GetLabel(issue).GetAwaiter().GetResult();
-                    UpdateLabels(issue, label);
-                    NotifyAssignee(issue, label);
-                }
+                var label = await GetLabel(issue);
+                UpdateLabels(issue, label);
+                NotifyAssignee(issue, label);
             }
         }
 
-        public IReadOnlyList<Issue> GetNewIssues(int minId)
+        public async Task<IReadOnlyList<Issue>> GetNewIssues(int minId)
         {
             var issueRequest = new RepositoryIssueRequest
             {
@@ -48,7 +45,7 @@ namespace GitHubLabeler
                 Since = DateTime.Now.AddMinutes(-10)
             };
 
-            var issues = _client.Issue.GetAllForRepository(_owner, _name, issueRequest).GetAwaiter().GetResult();
+            var issues = await _client.Issue.GetAllForRepository(_owner, _name, issueRequest);
             
             //Filter out pull requests and issues that are older than minId
             issues = new List<Issue>(issues.Where(i => i.Number >= minId && !i.HtmlUrl.Contains("/pull/")));
@@ -75,12 +72,13 @@ namespace GitHubLabeler
             var issueUpdate = new IssueUpdate();
             issueUpdate.AddLabel(label);
             
-            _client.Issue.Update(_owner, _name, issue.Number, issueUpdate).GetAwaiter().GetResult();
+            _client.Issue.Update(_owner, _name, issue.Number, issueUpdate);
         }
 
         private void NotifyAssignee(Issue issue, string label)
         {
-            Notifier.Send(issue, label);
+            // To send out email to assigned person add data (emails, credentials) in Notifier.cs and uncomment the next line
+            //Notifier.Send(issue, label);
             Console.WriteLine($"Issue {issue.Number} : \"{issue.Title}\" \t was labeled as: {label}");
         }
     }
