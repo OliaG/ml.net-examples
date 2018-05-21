@@ -1,40 +1,55 @@
 ## Goal
-This is just a simple prototype application to demonstrate how to use [ML.NET](https://www.nuget.org/packages/Microsoft.ML/) APIs. The main focus is on creating, training, and using ML (Machine Learning) model. The rest of the code was created just for the sake of end-to-end scenario and can be optimized.
+This is a simple prototype application to demonstrate how to use [ML.NET](https://www.nuget.org/packages/Microsoft.ML/) APIs. The main focus is on creating, training, and using ML (Machine Learning) model that is implemented in Predictor.cs class.
 
 ## Overview
-GitHubLabeler is a sample console application that illustrates how you can auto-label GitHub issues with ML model by using multi-class classification algorithm and text capabilities of [ML.NET](https://www.nuget.org/packages/Microsoft.ML/).
+GitHubLabeler is a .NET Core console application that runs from command-line interface (CLI) and allows to:
+* train ML model on your labeled GitHub issues to teach the model what label should be assigned for a new issue. (As an example, you can use `corefx_issues.tsv` file that contains issues from public [corefx](https://github.com/dotnet/corefx) repository)
+* label a new issue. The application will get all unlabeled open issues from specified in `App.config` GitHub repository and label them using the trained ML model created on the step above.  
+
+This ML model is using multi-class classification algorithm and text capabilities of [ML.NET](https://www.nuget.org/packages/Microsoft.ML/).
+ illustrates how you can auto-label GitHub issues with an ML model by using multi-class classification algorithm and text capabilities (`TextFeaturizer`) of [ML.NET](https://www.nuget.org/packages/Microsoft.ML/).
+
+## Enter you data
+1. **Provide your GitHub data** in `App.config`:
+    ```csharp
+        <add key="GitHubToken" value="" />
+        <add key="GitHubUserName" value="" />
+        <add key="GitHubRepoName" value="" />
+    ```
+    Your user account (`GitHubToken`) should have write rights to the repository (`GitHubRepoName`).
+2. **Provide training file**
+
+    a.  You can use existing `corefx_issues.tsv` data file for experimenting  with the program. In this case the predicted labels will be chosen among labels from [corefx](https://github.com/dotnet/corefx) repository. No changes required.
+    b. To work with labels from your GitHub repository, you will need to train the model on your data. To do so, export GitHub issues from your repository into `.tsv` file with following columns:
+    * ID - issue’s ID
+    * Area - issue’s label (named this way to avoid confusion with the Label concept in ML.NET)
+    * Title - issue’s title
+    * Description - issue’s description
+    
+    and add the file in `Data` folder. Update `Predictor.DataPath` to match your file's name:
+```csharp
+private static string DataPath => Path.Combine(AppPath, "Data", "corefx_issues.tsv");
+```
 
 ## Training 
-To train a model, issues from public [corefx](https://github.com/dotnet/corefx) repository were exported in .tsv file: `corefx_issues.tsv`. After training the model, it is saved as a .zip file in `GitHubLabeler\Models\Model.zip`.
->Training should be performed only once for the same training data (`corefx_issues.tsv`).
+Training is a process of running an ML model through known examples (in our case - issues with labels) and teaching it how to label new issues in future.
 
-## Inferencing
-After training, the model is used for predicting new issues label. For testing convenience only open not labeled issues that were created in the past 10 minutes are subject to labeling:
+To perform the training run the application with `"train"` key:
+```
+C:\GitHubLabeler\GitHubLabeler\bin\Debug\netcoreapp2.0>dotnet GitHubLabeler.dll train
+```
+After training is completed, the model is saved as a .zip file in `Models\Model.zip`.
+
+## Labeling
+When the model is trained, it can be used for predicting new issue's label. To do so, run the application with `"label"` key:
+```
+C:\GitHubLabeler\GitHubLabeler\bin\Debug\netcoreapp2.0>dotnet GitHubLabeler.dll label
+```
+For testing convenience only open and not labeled issues that were created in the past 10 minutes are subject to labeling:
 ```csharp
 Since = DateTime.Now.AddMinutes(-10)
 ```
-After predicting the label, the program updates the issue with the predicted label on GitHub and sends an email to an assigned person.
-
-## To make the program work
-Fill in following fields:
-```csharp
-// ToDo: Insert your GitHub token with write permission to
-// repository you want to label issues for.
-const string GitHubToken = "";
-// ToDo: Insert User name and Repository name
-const string GitHubUserName = "";
-const string GitHubRepoName = "";
-```
-```csharp
-mail.From = new MailAddress("from_email@mail.com"); // ToDo: add email address
-```
-```csharp
-smtp.Credentials = new NetworkCredential("", ""); // ToDo: add gmail username and password
-```
-```csharp
-// ToDo: Add logic to get contact email for the label
-return "to_email@mail.com";
-```
+After predicting the label, the program updates the issue with the predicted label on GitHub.
 
 ## Ask questions!
-If you have any questions or struggling with any part of ML.NET APIs usage in this sample, post your question as an issue in this repository. I'll be happy to help!
+If you have any questions or struggling with any parts of ML.NET APIs usage in this sample, post your question as an issue in this repository. Will be happy to help!

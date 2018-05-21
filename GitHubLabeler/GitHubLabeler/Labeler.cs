@@ -60,7 +60,7 @@ namespace GitHubLabeler
                 Description = issue.Body
             };
 
-            var predictedLabel = await Predictor.Predict(corefxIssue);
+            var predictedLabel = await Predictor.PredictAsync(corefxIssue);
 
             return predictedLabel;
         }

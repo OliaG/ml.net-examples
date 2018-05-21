@@ -45,7 +45,7 @@ namespace GitHubLabeler
             Console.WriteLine("The model is saved to {0}", ModelPath);
         }
 
-        public static async Task<string> Predict(GitHubIssue issue)
+        public static async Task<string> PredictAsync(GitHubIssue issue)
         {
             if (_model == null)
             {
